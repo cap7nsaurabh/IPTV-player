@@ -159,6 +159,27 @@ function initSchema(database) {
     console.warn('[schema] Warning seeding sources:', err.message);
   }
 
+  // Clean stale non-genre categories from legacy database runs
+  try {
+    const { GENRE_MAP } = require('../services/m3uParser');
+    const rows = db.prepare('SELECT id, categories FROM channels WHERE categories != \'[]\'').all();
+    const updateCat = db.prepare('UPDATE channels SET categories = ? WHERE id = ?');
+    const dbTransaction = db.transaction(() => {
+      for (const row of rows) {
+        let current = [];
+        try { current = JSON.parse(row.categories || '[]'); } catch (_e) { current = []; }
+        const cleaned = current.filter(c => c && GENRE_MAP[c.toLowerCase()]).map(c => GENRE_MAP[c.toLowerCase()]);
+        if (cleaned.length !== current.length) {
+          updateCat.run(JSON.stringify(cleaned), row.id);
+        }
+      }
+    });
+    dbTransaction();
+
+    const validGenreIds = Object.values(GENRE_MAP).map(g => `'${g}'`).join(',');
+    db.exec(`DELETE FROM categories WHERE id NOT IN (${validGenreIds})`);
+  } catch (_e) {}
+
   console.log('[schema] Database schema initialised.');
 }
 

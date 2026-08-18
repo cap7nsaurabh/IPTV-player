@@ -2,6 +2,7 @@
 
 const express = require('express');
 const db = require('../db/db');
+const { GENRE_MAP } = require('../services/m3uParser');
 
 const router = express.Router();
 
@@ -152,7 +153,10 @@ router.get('/filters', (_req, res) => {
 
   for (const row of allRows) {
     for (const cat of safeParseJSON(row.categories, [])) {
-      catCount.set(cat, (catCount.get(cat) || 0) + 1);
+      if (cat && GENRE_MAP[cat.toLowerCase()]) {
+        const normalized = GENRE_MAP[cat.toLowerCase()];
+        catCount.set(normalized, (catCount.get(normalized) || 0) + 1);
+      }
     }
     for (const lang of safeParseJSON(row.languages, [])) {
       langCount.set(lang, (langCount.get(lang) || 0) + 1);

@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
 const db = require('../db/db');
-const { parseM3U, slugify } = require('./m3uParser');
+const { parseM3U, slugify, GENRE_MAP } = require('./m3uParser');
 
 const DATA_DIR = process.env.DATA_DIR || './data';
 const LOGOS_DIR = path.join(DATA_DIR, 'logos');
@@ -50,7 +50,7 @@ const upsertChannel = db.prepare(`
     name = COALESCE(excluded.name, channels.name),
     alt_names = CASE WHEN excluded.alt_names != '[]' THEN excluded.alt_names ELSE channels.alt_names END,
     country = COALESCE(excluded.country, channels.country),
-    categories = CASE WHEN excluded.categories != '[]' THEN excluded.categories ELSE channels.categories END,
+    categories = excluded.categories,
     languages = CASE WHEN excluded.languages != '[]' THEN excluded.languages ELSE channels.languages END,
     logo = COALESCE(channels.logo, excluded.logo),
     network = COALESCE(excluded.network, channels.network),
@@ -404,14 +404,15 @@ async function syncM3uSource(sourceId, m3uUrlOrContent, sourceName, isRawContent
           });
         }
 
-        // Keep track of categories
+        // Keep track of categories (only valid genres)
         if (Array.isArray(channel.categories)) {
           for (const cat of channel.categories) {
-            if (cat && !categoriesSeen.has(cat)) {
-              categoriesSeen.add(cat);
+            const normalized = cat ? GENRE_MAP[cat.toLowerCase()] : null;
+            if (normalized && !categoriesSeen.has(normalized)) {
+              categoriesSeen.add(normalized);
               upsertCategory.run({
-                id: cat,
-                name: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, ' '),
+                id: normalized,
+                name: normalized.charAt(0).toUpperCase() + normalized.slice(1).replace(/-/g, ' '),
               });
             }
           }
@@ -443,6 +444,17 @@ async function syncM3uSource(sourceId, m3uUrlOrContent, sourceName, isRawContent
     });
 
     const result = runTransaction();
+
+    // Clean up orphan channels not tied to any streams or favorites
+    try {
+      db.exec(`
+        DELETE FROM channels
+        WHERE id NOT IN (SELECT DISTINCT channel_id FROM streams)
+          AND id NOT IN (SELECT channel_id FROM favorites)
+      `);
+      const validGenreIds = Object.values(GENRE_MAP).map(g => `'${g}'`).join(',');
+      db.exec(`DELETE FROM categories WHERE id NOT IN (${validGenreIds})`);
+    } catch (_e) {}
 
     updateSyncLogDone.run({
       id:              logId,
@@ -629,6 +641,29 @@ async function cacheLogos(limit = 100) {
   return cached;
 }
 
+function cleanupStaleCategories() {
+  try {
+    const rows = db.prepare('SELECT id, categories FROM channels WHERE categories != \'[]\'').all();
+    const updateCat = db.prepare('UPDATE channels SET categories = ? WHERE id = ?');
+    const dbTransaction = db.transaction(() => {
+      for (const row of rows) {
+        let current = [];
+        try { current = JSON.parse(row.categories || '[]'); } catch (_e) { current = []; }
+        const cleaned = current.filter(c => c && GENRE_MAP[c.toLowerCase()]).map(c => GENRE_MAP[c.toLowerCase()]);
+        if (cleaned.length !== current.length) {
+          updateCat.run(JSON.stringify(cleaned), row.id);
+        }
+      }
+    });
+    dbTransaction();
+
+    const validGenreIds = Object.values(GENRE_MAP).map(g => `'${g}'`).join(',');
+    db.exec(`DELETE FROM categories WHERE id NOT IN (${validGenreIds})`);
+  } catch (err) {
+    console.warn('[sync] Warning cleaning stale categories:', err.message);
+  }
+}
+
 module.exports = {
   syncCatalogs,
   syncAllSources,
@@ -636,6 +671,7 @@ module.exports = {
   syncIptvOrg,
   syncM3uSource,
   importDirectM3u,
+  cleanupStaleCategories,
   getSources,
   getSource,
   addSource,
