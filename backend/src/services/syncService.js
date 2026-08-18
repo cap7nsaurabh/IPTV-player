@@ -609,35 +609,40 @@ function getDbStats() {
 // Logo Caching
 // ---------------------------------------------------------------------------
 
-async function cacheLogos(limit = 100) {
+async function cacheLogos(limit = 20) {
   fs.mkdirSync(LOGOS_DIR, { recursive: true });
 
-  const rows = getUncachedLogos.all(limit);
-  console.log(`[logos] Caching ${rows.length} logos (limit=${limit}) …`);
+  const rows = getUncachedLogos.all(Math.min(limit, 30));
+  if (rows.length === 0) return 0;
 
   let cached = 0;
+  const CONCURRENCY = 5;
 
-  for (const { id: channelId, logo } of rows) {
-    try {
-      const res = await fetch(logo, { timeout: 10000 });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    const batch = rows.slice(i, i + CONCURRENCY);
+    await Promise.all(
+      batch.map(async ({ id: channelId, logo }) => {
+        try {
+          const res = await fetch(logo, { timeout: 2500 });
+          if (!res.ok) return;
 
-      const buffer = await res.buffer();
-      const destPath = path.join(LOGOS_DIR, `${channelId}.jpg`);
+          const buffer = await res.buffer();
+          const destPath = path.join(LOGOS_DIR, `${channelId}.jpg`);
 
-      await sharp(buffer)
-        .resize(120, 120, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
-        .jpeg({ quality: 85 })
-        .toFile(destPath);
+          await sharp(buffer)
+            .resize(120, 120, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
+            .jpeg({ quality: 85 })
+            .toFile(destPath);
 
-      markLogoCached.run(channelId);
-      cached++;
-    } catch (err) {
-      console.warn(`[logos] Skipped ${channelId}: ${err.message}`);
-    }
+          markLogoCached.run(channelId);
+          cached++;
+        } catch (_err) {
+          // Non-critical skip
+        }
+      })
+    );
   }
 
-  console.log(`[logos] Cached ${cached} logos.`);
   return cached;
 }
 

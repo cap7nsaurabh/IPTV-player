@@ -55,7 +55,7 @@ export default function Settings() {
 
   // Mutations
   const syncAllMutation = useMutation({
-    mutationFn: () => api.sources.syncAll(false),
+    mutationFn: () => api.sources.syncAll(true),
     onSuccess: () => {
       invalidateAll()
     },
@@ -64,7 +64,7 @@ export default function Settings() {
   const syncSingleMutation = useMutation({
     mutationFn: (id) => {
       setSyncingSourceId(id)
-      return api.sources.sync(id, false)
+      return api.sources.sync(id, true)
     },
     onSettled: () => {
       setSyncingSourceId(null)

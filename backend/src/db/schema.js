@@ -116,8 +116,11 @@ function initSchema(database) {
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_channels_country ON channels(country);
       CREATE INDEX IF NOT EXISTS idx_channels_name ON channels(name);
+      CREATE INDEX IF NOT EXISTS idx_channels_closed ON channels(closed);
       CREATE INDEX IF NOT EXISTS idx_streams_channel ON streams(channel_id);
       CREATE INDEX IF NOT EXISTS idx_streams_source ON streams(source);
+      CREATE INDEX IF NOT EXISTS idx_streams_channel_source ON streams(channel_id, source);
+      CREATE INDEX IF NOT EXISTS idx_streams_source_channel ON streams(source, channel_id);
       CREATE INDEX IF NOT EXISTS idx_epg_channel_time ON epg_programs(channel_id, start_time, end_time);
     `);
   } catch (err) {

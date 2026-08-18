@@ -13,8 +13,11 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 const dbPath = path.join(DATA_DIR, 'iptv.db');
 const db = new Database(dbPath);
 
-// Enable WAL mode for better concurrent read performance
+// Enable WAL mode and performance optimizations
 db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');
+db.pragma('cache_size = -64000');
+db.pragma('temp_store = MEMORY');
 
 // Initialize schema immediately so any module preparing SQL statements has all tables ready
 initSchema(db);

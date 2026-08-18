@@ -208,17 +208,25 @@ router.get('/filters', (req, res) => {
 
   // 2. Sources facet
   const sourceCond = buildFacetConditions(query, 'source');
-  const sourceRows = db.prepare(`
-    SELECT s.id as value, s.name as label, s.enabled,
-           (SELECT COUNT(DISTINCT s2.channel_id)
-            FROM streams s2
-            JOIN channels c ON c.id = s2.channel_id
-            ${sourceCond.joinFav}
-            ${sourceCond.where} AND s2.source = s.id
-           ) as count
-    FROM sources s
-    ORDER BY count DESC
-  `).all(...sourceCond.params);
+  const sourceCounts = new Map(
+    db.prepare(`
+      SELECT s2.source as id, COUNT(DISTINCT s2.channel_id) as count
+      FROM streams s2
+      JOIN channels c ON c.id = s2.channel_id
+      ${sourceCond.joinFav}
+      ${sourceCond.where}
+      GROUP BY s2.source
+    `).all(...sourceCond.params).map(r => [r.id, r.count])
+  );
+
+  const allSources = db.prepare('SELECT id as value, name as label, enabled FROM sources').all();
+  const sourceRows = allSources
+    .map(s => ({
+      ...s,
+      enabled: Boolean(s.enabled),
+      count: sourceCounts.get(s.value) || 0,
+    }))
+    .sort((a, b) => b.count - a.count);
 
   // 3. Categories facet
   const categoryRows = db.prepare(`SELECT id, name FROM categories`).all();
@@ -228,7 +236,7 @@ router.get('/filters', (req, res) => {
   const catRows = db.prepare(`
     SELECT c.categories FROM channels c
     ${catCond.joinFav}
-    ${catCond.where}
+    ${catCond.where} AND c.categories != '[]'
   `).all(...catCond.params);
 
   const catCount = new Map();
@@ -246,7 +254,7 @@ router.get('/filters', (req, res) => {
   const langRows = db.prepare(`
     SELECT c.languages FROM channels c
     ${langCond.joinFav}
-    ${langCond.where}
+    ${langCond.where} AND c.languages != '[]'
   `).all(...langCond.params);
 
   const langCount = new Map();
