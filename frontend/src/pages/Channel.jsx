@@ -94,6 +94,18 @@ export default function Channel() {
 
   const now = Date.now()
 
+  function formatStreamUrl(rawUrl) {
+    if (!rawUrl) return ''
+    try {
+      const parsed = new URL(rawUrl)
+      const pathname = parsed.pathname
+      const lastPart = pathname.split('/').filter(Boolean).pop() || ''
+      return `${parsed.hostname}${lastPart ? '/' + lastPart : ''}`
+    } catch {
+      return rawUrl
+    }
+  }
+
   return (
     <div className="container page-wrapper">
       <div className="channel-page">
@@ -157,7 +169,7 @@ export default function Channel() {
         {/* PLAYER & STREAMS LAYOUT */}
         <div className="player-layout">
           {/* VIDEO PLAYER */}
-          <div>
+          <div style={{ minWidth: 0 }}>
             {activeStream ? (
               <VideoPlayer stream={activeStream} channelTitle={channel.name} />
             ) : (
@@ -200,6 +212,7 @@ export default function Channel() {
                       key={s.id || idx}
                       className={`stream-item ${isActive ? 'active' : ''}`}
                       onClick={() => setSelectedStreamIndex(idx)}
+                      title={`Click to play: ${s.url}`}
                     >
                       <div className="stream-item-info">
                         <div className="flex items-center gap-2">
@@ -208,7 +221,7 @@ export default function Channel() {
                           {isActive && <span className="badge badge-accent text-xs">Playing</span>}
                         </div>
                         <span className="stream-url-text" title={s.url}>
-                          {s.url}
+                          {formatStreamUrl(s.url)}
                         </span>
                       </div>
 
