@@ -349,7 +349,7 @@ export default function Settings() {
                       </div>
                     ) : (
                       <div className="flex gap-2">
-                        {src.id !== 'iptv-org' && (
+                        {!isBuiltIn && (
                           <button
                             className="btn btn-ghost btn-sm btn-danger"
                             title="Remove source and its streams"
@@ -522,21 +522,6 @@ export default function Settings() {
 
             <form onSubmit={handleAddSubmit}>
               <div className="modal-body">
-                <div style={{ marginBottom: '12px' }}>
-                  <div className="text-muted text-xs" style={{ marginBottom: '6px' }}>Quick Preset:</div>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '11px', padding: '4px 10px' }}
-                    onClick={() => {
-                      setNewSourceName('World IPTV (Romaxa55)')
-                      setNewSourceUrl('https://romaxa55.github.io/world_ip_tv/output/index.m3u')
-                    }}
-                  >
-                    🌍 World IPTV (Romaxa55 Auto-Verified)
-                  </button>
-                </div>
-
                 <div className="form-group">
                   <label className="form-label">Playlist / Source Name</label>
                   <input
