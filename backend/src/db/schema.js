@@ -93,19 +93,35 @@ function initSchema(database) {
       status TEXT DEFAULT 'running',
       error TEXT
     );
-
-    CREATE INDEX IF NOT EXISTS idx_channels_country ON channels(country);
-    CREATE INDEX IF NOT EXISTS idx_channels_name ON channels(name);
-    CREATE INDEX IF NOT EXISTS idx_streams_channel ON streams(channel_id);
-    CREATE INDEX IF NOT EXISTS idx_streams_source ON streams(source);
-    CREATE INDEX IF NOT EXISTS idx_epg_channel_time ON epg_programs(channel_id, start_time, end_time);
   `);
 
-  // Migration helper for existing DBs that might lack source_id column in sync_log
+  // Migration helpers for existing databases
+  const safeAlter = (sql) => {
+    try {
+      db.exec(sql);
+    } catch (_e) {
+      // Column already exists or table not ready
+    }
+  };
+
+  safeAlter(`ALTER TABLE streams ADD COLUMN source TEXT DEFAULT 'iptv-org'`);
+  safeAlter(`ALTER TABLE streams ADD COLUMN http_referrer TEXT`);
+  safeAlter(`ALTER TABLE streams ADD COLUMN user_agent TEXT`);
+  safeAlter(`ALTER TABLE streams ADD COLUMN last_checked INTEGER`);
+  safeAlter(`ALTER TABLE streams ADD COLUMN last_synced INTEGER`);
+  safeAlter(`ALTER TABLE sync_log ADD COLUMN source_id TEXT DEFAULT 'all'`);
+
+  // Create indexes after migrations ensure columns exist
   try {
-    db.exec(`ALTER TABLE sync_log ADD COLUMN source_id TEXT DEFAULT 'all'`);
-  } catch (_e) {
-    // Column already exists
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_channels_country ON channels(country);
+      CREATE INDEX IF NOT EXISTS idx_channels_name ON channels(name);
+      CREATE INDEX IF NOT EXISTS idx_streams_channel ON streams(channel_id);
+      CREATE INDEX IF NOT EXISTS idx_streams_source ON streams(source);
+      CREATE INDEX IF NOT EXISTS idx_epg_channel_time ON epg_programs(channel_id, start_time, end_time);
+    `);
+  } catch (err) {
+    console.warn('[schema] Warning creating indexes:', err.message);
   }
 
   // Seed default sources if none exist
