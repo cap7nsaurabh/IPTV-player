@@ -63,6 +63,22 @@ export default function ChannelCard({ channel }) {
             </span>
           ))}
 
+          {channel.streamCount !== undefined && (
+            <span
+              className={`badge ${channel.streamCount > 0 ? 'badge-stream-active' : 'badge-stream-none'}`}
+              title={
+                channel.streamCount > 0
+                  ? `${channel.streamCount} stream${channel.streamCount > 1 ? 's' : ''} available`
+                  : 'No streams available'
+              }
+            >
+              <span className={`stream-badge-dot ${channel.streamCount > 0 ? 'online' : 'offline'}`} />
+              {channel.streamCount > 0
+                ? `${channel.streamCount} ${channel.streamCount === 1 ? 'stream' : 'streams'}`
+                : 'No stream'}
+            </span>
+          )}
+
           {channel.is_nsfw ? (
             <span className="badge" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
               18+

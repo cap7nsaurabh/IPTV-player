@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
 
@@ -9,7 +9,8 @@ function safeJSON(val, fallback) {
 router.get('/', (req, res) => {
   try {
     const rows = db.prepare(`
-      SELECT c.*, 1 as isFavorite, f.added_at as favorited_at
+      SELECT c.*, 1 as isFavorite, f.added_at as favorited_at,
+             (SELECT COUNT(*) FROM streams s WHERE s.channel_id = c.id) AS streamCount
       FROM favorites f
       JOIN channels c ON c.id = f.channel_id
       ORDER BY f.added_at DESC
@@ -20,6 +21,8 @@ router.get('/', (req, res) => {
       categories: safeJSON(ch.categories, []),
       languages: safeJSON(ch.languages, []),
       isFavorite: true,
+      streamCount: ch.streamCount != null ? Number(ch.streamCount) : undefined,
+      hasStreams: ch.streamCount != null ? Number(ch.streamCount) > 0 : undefined,
     }));
     res.json(channels);
   } catch (err) {

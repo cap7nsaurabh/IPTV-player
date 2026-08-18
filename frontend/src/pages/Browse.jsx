@@ -12,6 +12,7 @@ export default function Browse() {
   const category = searchParams.get('category') || ''
   const country = searchParams.get('country') || ''
   const language = searchParams.get('language') || ''
+  const hasStreams = searchParams.get('hasStreams') || ''
   const page = parseInt(searchParams.get('page') || '1', 10)
 
   // Query backend with active params
@@ -20,6 +21,7 @@ export default function Browse() {
     category,
     country,
     language,
+    hasStreams,
     page,
     limit: 48,
   })
@@ -37,7 +39,7 @@ export default function Browse() {
         next.delete(key)
       }
 
-      // Reset to page 1 ONLY when changing search, category, country, or language
+      // Reset to page 1 ONLY when changing search, category, country, language, or hasStreams
       if (key !== 'page') {
         next.delete('page')
       }
@@ -49,7 +51,7 @@ export default function Browse() {
     setSearchParams({})
   }, [setSearchParams])
 
-  const hasActiveFilters = Boolean(search || category || country || language)
+  const hasActiveFilters = Boolean(search || category || country || language || hasStreams)
 
   return (
     <div className="container page-wrapper">
@@ -60,9 +62,11 @@ export default function Browse() {
             selectedCategory={category}
             selectedCountry={country}
             selectedLanguage={language}
+            selectedHasStreams={hasStreams}
             onSelectCategory={(val) => updateParam('category', val)}
             onSelectCountry={(val) => updateParam('country', val)}
             onSelectLanguage={(val) => updateParam('language', val)}
+            onSelectHasStreams={(val) => updateParam('hasStreams', val)}
             onClearAll={handleClearAll}
           />
         </aside>
@@ -78,11 +82,23 @@ export default function Browse() {
               </p>
             </div>
 
-            <SearchBar
-              value={search}
-              onChange={(val) => updateParam('search', val)}
-              placeholder="Search by title, network..."
-            />
+            <div className="browse-header-controls">
+              <button
+                type="button"
+                className={`stream-quick-filter-btn ${hasStreams === 'true' ? 'active' : ''}`}
+                onClick={() => updateParam('hasStreams', hasStreams === 'true' ? '' : 'true')}
+                title={hasStreams === 'true' ? 'Showing channels with streams only. Click to show all.' : 'Filter to show only channels with streams.'}
+              >
+                <span className={`status-indicator ${hasStreams === 'true' ? 'status-indicator--live' : 'status-indicator--offline'}`} />
+                <span>{hasStreams === 'true' ? 'Streams Only' : 'Has Streams'}</span>
+              </button>
+
+              <SearchBar
+                value={search}
+                onChange={(val) => updateParam('search', val)}
+                placeholder="Search by title, network..."
+              />
+            </div>
           </div>
 
           {/* ACTIVE FILTER PILLS */}
@@ -94,6 +110,15 @@ export default function Browse() {
                 <span className="filter-pill">
                   Search: "{search}"
                   <span className="filter-pill-remove" onClick={() => updateParam('search', '')}>
+                    ✕
+                  </span>
+                </span>
+              )}
+
+              {hasStreams && (
+                <span className="filter-pill">
+                  Streams: {hasStreams === 'true' ? 'With Streams Only' : 'No Streams'}
+                  <span className="filter-pill-remove" onClick={() => updateParam('hasStreams', '')}>
                     ✕
                   </span>
                 </span>
