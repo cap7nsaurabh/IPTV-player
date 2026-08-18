@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useChannels } from '../hooks/useChannels'
 import SidebarFilters from '../components/SidebarFilters/SidebarFilters'
@@ -24,25 +24,30 @@ export default function Browse() {
     limit: 48,
   })
 
-  const updateParam = (key, value) => {
+  const updateParam = useCallback((key, value) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
+      const currentVal = next.get(key) || ''
+      // If already set to this value, avoid redundant searchParams update
+      if (currentVal === value) return prev
+
       if (value) {
         next.set(key, value)
       } else {
         next.delete(key)
       }
-      // Reset to page 1 on filter changes
+
+      // Reset to page 1 ONLY when changing search, category, country, or language
       if (key !== 'page') {
         next.delete('page')
       }
       return next
     })
-  }
+  }, [setSearchParams])
 
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     setSearchParams({})
-  }
+  }, [setSearchParams])
 
   const hasActiveFilters = Boolean(search || category || country || language)
 

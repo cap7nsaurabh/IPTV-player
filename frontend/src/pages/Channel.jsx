@@ -201,18 +201,18 @@ export default function Channel() {
                       className={`stream-item ${isActive ? 'active' : ''}`}
                       onClick={() => setSelectedStreamIndex(idx)}
                     >
-                      <div className="flex flex-col gap-1">
+                      <div className="stream-item-info">
                         <div className="flex items-center gap-2">
                           <span className={`status-dot ${health}`} />
                           <strong className="text-sm">Feed #{idx + 1}</strong>
                           {isActive && <span className="badge badge-accent text-xs">Playing</span>}
                         </div>
-                        <span className="text-muted text-xs truncate" style={{ maxWidth: '200px' }}>
+                        <span className="stream-url-text" title={s.url}>
                           {s.url}
                         </span>
                       </div>
 
-                      <span className="badge text-xs" style={{ textTransform: 'capitalize' }}>
+                      <span className="badge text-xs stream-status-badge" style={{ textTransform: 'capitalize' }}>
                         {health}
                       </span>
                     </div>

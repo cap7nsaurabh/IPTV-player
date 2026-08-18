@@ -842,24 +842,32 @@ h3 { font-size: 1.15rem; line-height: 1.4; }
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .streams-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .stream-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px 14px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition);
+  min-width: 0;
 }
 .stream-item:hover {
   background: var(--bg-elevated);
@@ -868,6 +876,29 @@ h3 { font-size: 1.15rem; line-height: 1.4; }
 .stream-item.active {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+.stream-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.stream-url-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+  font-family: var(--font-mono);
+}
+
+.stream-status-badge {
+  flex-shrink: 0;
 }
 
 .epg-timeline-card {

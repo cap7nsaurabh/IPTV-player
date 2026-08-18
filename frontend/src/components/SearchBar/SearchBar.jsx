@@ -3,28 +3,33 @@ import React, { useState, useEffect, useRef } from 'react'
 export default function SearchBar({ value = '', onChange, placeholder = 'Search channels by name, network...' }) {
   const [query, setQuery] = useState(value)
   const isFirstRender = useRef(true)
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
 
   // Sync internal state when external value changes
   useEffect(() => {
     setQuery(value)
   }, [value])
 
-  // Debounce notification to parent
+  // Debounce notification to parent ONLY when user types a different query
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
       return
     }
+    // If the internal query matches the external value prop, don't trigger onChange
+    if (query === value) return
+
     const timer = setTimeout(() => {
-      if (onChange) onChange(query)
+      onChangeRef.current?.(query)
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query, onChange])
+  }, [query, value])
 
   const handleClear = () => {
     setQuery('')
-    if (onChange) onChange('')
+    onChangeRef.current?.('')
   }
 
   return (
