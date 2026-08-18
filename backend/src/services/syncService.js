@@ -556,7 +556,23 @@ const syncCatalogs = syncAllSources;
 // ---------------------------------------------------------------------------
 
 function getLastSync() {
-  return getLastSyncStmt.get() || null;
+  const lastLog = getLastSyncStmt.get() || null;
+  const stats = getDbStats();
+
+  const isRunning = Boolean(
+    db.prepare("SELECT 1 FROM sync_log WHERE status = 'running' LIMIT 1").get()
+  );
+
+  return {
+    ...(lastLog || {}),
+    status: isRunning ? 'running' : (lastLog?.status || 'done'),
+    total_channels: stats.activeChannels,
+    total_streams: stats.streams,
+    sources_count: stats.sources,
+    channels_synced: stats.activeChannels,
+    streams_synced: stats.streams,
+    last_synced: lastLog?.finished_at || lastLog?.started_at || null,
+  };
 }
 
 function getSyncHistory(limit = 10) {

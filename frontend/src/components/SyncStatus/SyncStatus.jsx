@@ -85,16 +85,22 @@ export default function SyncStatus() {
 
           <div className="sync-popover__body">
             <div className="sync-stat-row">
-              <span className="text-muted">Channels:</span>
-              <strong>{data?.channels_synced?.toLocaleString() || '0'}</strong>
+              <span className="text-muted">Active Channels:</span>
+              <strong>{(data?.total_channels || data?.channels_synced || 0).toLocaleString()}</strong>
             </div>
             <div className="sync-stat-row">
-              <span className="text-muted">Streams:</span>
-              <strong>{data?.streams_synced?.toLocaleString() || '0'}</strong>
+              <span className="text-muted">Live Streams:</span>
+              <strong>{(data?.total_streams || data?.streams_synced || 0).toLocaleString()}</strong>
             </div>
+            {data?.sources_count ? (
+              <div className="sync-stat-row">
+                <span className="text-muted">Active Catalogs:</span>
+                <strong>{data.sources_count} Sources</strong>
+              </div>
+            ) : null}
             <div className="sync-stat-row">
               <span className="text-muted">Last Updated:</span>
-              <span className="text-xs">{formatTime(data?.finished_at || data?.started_at)}</span>
+              <span className="text-xs">{formatTime(data?.finished_at || data?.started_at || data?.last_synced)}</span>
             </div>
             {data?.error && (
               <div className="sync-error-msg">

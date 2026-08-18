@@ -15,9 +15,10 @@ services:
       - DATA_DIR=/app/data
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/api/ping']
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
 
   frontend:
     build:
