@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { syncCatalogs, getLastSync, getSyncHistory, getDbStats, cacheLogos } = require('../services/syncService');
+const { syncCatalogs, syncSource, getLastSync, getSyncHistory, getDbStats, cacheLogos } = require('../services/syncService');
 
 router.get('/status', (req, res) => {
   try {
@@ -30,8 +30,11 @@ router.get('/history', (req, res) => {
 });
 
 router.post('/trigger', (req, res) => {
-  res.status(202).json({ ok: true, message: 'Sync started in background' });
-  syncCatalogs()
+  const sourceId = req.body?.sourceId || req.query?.sourceId;
+  res.status(202).json({ ok: true, message: sourceId ? `Sync started for ${sourceId}` : 'Sync started for all sources' });
+
+  const syncPromise = sourceId ? syncSource(sourceId) : syncCatalogs();
+  syncPromise
     .then(() => cacheLogos(500))
     .catch(err => console.error('[Sync] Background error:', err.message));
 });

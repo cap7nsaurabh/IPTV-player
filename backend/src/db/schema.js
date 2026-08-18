@@ -68,8 +68,22 @@ function initSchema(database) {
       FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS sources (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      url TEXT NOT NULL,
+      enabled INTEGER DEFAULT 1,
+      auto_sync INTEGER DEFAULT 1,
+      channel_count INTEGER DEFAULT 0,
+      stream_count INTEGER DEFAULT 0,
+      last_synced INTEGER,
+      created_at INTEGER
+    );
+
     CREATE TABLE IF NOT EXISTS sync_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id TEXT DEFAULT 'all',
       started_at INTEGER,
       finished_at INTEGER,
       channels_synced INTEGER DEFAULT 0,
@@ -83,10 +97,54 @@ function initSchema(database) {
     CREATE INDEX IF NOT EXISTS idx_channels_country ON channels(country);
     CREATE INDEX IF NOT EXISTS idx_channels_name ON channels(name);
     CREATE INDEX IF NOT EXISTS idx_streams_channel ON streams(channel_id);
+    CREATE INDEX IF NOT EXISTS idx_streams_source ON streams(source);
     CREATE INDEX IF NOT EXISTS idx_epg_channel_time ON epg_programs(channel_id, start_time, end_time);
   `);
+
+  // Migration helper for existing DBs that might lack source_id column in sync_log
+  try {
+    db.exec(`ALTER TABLE sync_log ADD COLUMN source_id TEXT DEFAULT 'all'`);
+  } catch (_e) {
+    // Column already exists
+  }
+
+  // Seed default sources if none exist
+  try {
+    const count = db.prepare('SELECT COUNT(*) as c FROM sources').get()?.c || 0;
+    if (count === 0) {
+      const insertSource = db.prepare(`
+        INSERT INTO sources (id, name, type, url, enabled, auto_sync, created_at)
+        VALUES (@id, @name, @type, @url, @enabled, @auto_sync, @created_at)
+      `);
+
+      const now = Date.now();
+      insertSource.run({
+        id: 'iptv-org',
+        name: 'IPTV-org (Official)',
+        type: 'iptv-org',
+        url: 'https://iptv-org.github.io/api',
+        enabled: 1,
+        auto_sync: 1,
+        created_at: now,
+      });
+
+      insertSource.run({
+        id: 'world-ip-tv',
+        name: 'World IPTV (Romaxa55 Auto-Verified)',
+        type: 'm3u',
+        url: 'https://romaxa55.github.io/world_ip_tv/output/index.m3u',
+        enabled: 1,
+        auto_sync: 1,
+        created_at: now,
+      });
+      console.log('[schema] Seeded default catalog sources (iptv-org, world-ip-tv).');
+    }
+  } catch (err) {
+    console.warn('[schema] Warning seeding sources:', err.message);
+  }
 
   console.log('[schema] Database schema initialised.');
 }
 
 module.exports = { initSchema };
+

@@ -18,6 +18,7 @@ export default function SyncStatus() {
     mutationFn: api.sync.trigger,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sync-status'] })
+      queryClient.invalidateQueries({ queryKey: ['sources'] })
       queryClient.invalidateQueries({ queryKey: ['channels'] })
       queryClient.invalidateQueries({ queryKey: ['filters'] })
       queryClient.invalidateQueries({ queryKey: ['sync-stats'] })

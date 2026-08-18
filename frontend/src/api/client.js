@@ -40,7 +40,39 @@ export const api = {
     status: () => apiFetch('/sync/status'),
     stats: () => apiFetch('/sync/stats'),
     history: (limit = 10) => apiFetch(`/sync/history?limit=${limit}`),
-    trigger: () => apiFetch('/sync/trigger', { method: 'POST' }),
+    trigger: (sourceId) => apiFetch('/sync/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sourceId ? { sourceId } : {}),
+    }),
+  },
+  sources: {
+    list: () => apiFetch('/sources'),
+    get: (id) => apiFetch(`/sources/${encodeURIComponent(id)}`),
+    add: (data) => apiFetch('/sources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+    update: (id, data) => apiFetch(`/sources/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+    delete: (id, cleanStreams = true) => apiFetch(`/sources/${encodeURIComponent(id)}?cleanStreams=${Boolean(cleanStreams)}`, {
+      method: 'DELETE',
+    }),
+    sync: (id, isAsync = false) => apiFetch(`/sources/${encodeURIComponent(id)}/sync?async=${Boolean(isAsync)}`, {
+      method: 'POST',
+    }),
+    syncAll: (isAsync = false) => apiFetch(`/sources/sync-all?async=${Boolean(isAsync)}`, {
+      method: 'POST',
+    }),
+    importDirect: (data) => apiFetch('/sources/import-direct', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
   },
   health: {
     check: (channelId) => apiFetch(`/health/${encodeURIComponent(channelId)}`, { method: 'POST' }),

@@ -215,9 +215,14 @@ export default function Channel() {
                       title={`Click to play: ${s.url}`}
                     >
                       <div className="stream-item-info">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className={`status-dot ${health}`} />
                           <strong className="text-sm">Feed #{idx + 1}</strong>
+                          {s.source && (
+                            <span className="badge text-xs" style={{ padding: '1px 6px', fontSize: '10px' }}>
+                              {s.source === 'world-ip-tv' ? '🌍 World IPTV' : s.source === 'iptv-org' ? '🌐 iptv-org' : `📁 ${s.source}`}
+                            </span>
+                          )}
                           {isActive && <span className="badge badge-accent text-xs">Playing</span>}
                         </div>
                         <span className="stream-url-text" title={s.url}>

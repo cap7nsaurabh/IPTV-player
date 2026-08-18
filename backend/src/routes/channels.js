@@ -28,7 +28,7 @@ function safeParseJSON(value, fallback) {
 
 // ---------------------------------------------------------------------------
 // GET /api/channels
-// Query params: search, country, category, language, page, limit, favoritesOnly, hasStreams
+// Query params: search, country, category, language, source, page, limit, favoritesOnly, hasStreams
 // ---------------------------------------------------------------------------
 router.get('/', (req, res) => {
   const {
@@ -36,6 +36,7 @@ router.get('/', (req, res) => {
     country,
     category,
     language,
+    source,
     favoritesOnly,
     hasStreams,
     page  = '1',
@@ -67,6 +68,11 @@ router.get('/', (req, res) => {
   if (language) {
     conditions.push("c.languages LIKE ?");
     params.push(`%"${language}"%`);
+  }
+
+  if (source) {
+    conditions.push("EXISTS (SELECT 1 FROM streams s WHERE s.channel_id = c.id AND s.source = ?)");
+    params.push(source);
   }
 
   if (hasStreams === 'true' || hasStreams === '1') {
@@ -125,6 +131,13 @@ router.get('/filters', (_req, res) => {
     ORDER BY count DESC
   `).all();
 
+  const sourceRows = db.prepare(`
+    SELECT s.id as value, s.name as label,
+           (SELECT COUNT(DISTINCT channel_id) FROM streams WHERE source = s.id) as count
+    FROM sources s
+    ORDER BY count DESC
+  `).all();
+
   const categoryRows = db.prepare(`SELECT id, name FROM categories`).all();
   const categoryMap = new Map(categoryRows.map(c => [c.id, c.name]));
 
@@ -180,6 +193,7 @@ router.get('/filters', (_req, res) => {
       flag: r.flag || '🌐',
       count: r.count
     })),
+    sources:    sourceRows,
     languages:  toSortedLanguages(langCount),
     streams: {
       total: streamCounts.total || 0,
