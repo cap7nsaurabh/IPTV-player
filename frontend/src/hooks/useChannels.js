@@ -16,11 +16,11 @@ export function useChannel(id) {
   })
 }
 
-export function useFilters() {
+export function useFilters(params = {}) {
   return useQuery({
-    queryKey: ['filters'],
-    queryFn: () => api.channels.filters(),
-    staleTime: 1000 * 60 * 30,
+    queryKey: ['filters', params],
+    queryFn: () => api.channels.filters(params),
+    staleTime: 0,
   })
 }
 

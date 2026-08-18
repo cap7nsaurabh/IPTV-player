@@ -5,20 +5,33 @@ export default function SidebarFilters({
   selectedCategory = '',
   selectedCountry = '',
   selectedLanguage = '',
+  selectedSource = '',
   selectedHasStreams = '',
+  search = '',
   onSelectCategory,
   onSelectCountry,
   onSelectLanguage,
+  onSelectSource,
   onSelectHasStreams,
   onClearAll,
 }) {
-  const { data: filtersData, isLoading } = useFilters()
+  const filterParams = useMemo(() => ({
+    search: search || undefined,
+    category: selectedCategory || undefined,
+    country: selectedCountry || undefined,
+    language: selectedLanguage || undefined,
+    source: selectedSource || undefined,
+    hasStreams: selectedHasStreams || undefined,
+  }), [search, selectedCategory, selectedCountry, selectedLanguage, selectedSource, selectedHasStreams])
+
+  const { data: filtersData, isLoading } = useFilters(filterParams)
 
   const [catSearch, setCatSearch] = useState('')
   const [countrySearch, setCountrySearch] = useState('')
   const [langSearch, setLangSearch] = useState('')
 
   const [openSections, setOpenSections] = useState({
+    sources: true,
     categories: true,
     countries: true,
     languages: false,
@@ -27,6 +40,10 @@ export default function SidebarFilters({
   const toggleSection = (section) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
+
+  const sources = useMemo(() => {
+    return filtersData?.sources || []
+  }, [filtersData])
 
   const categories = useMemo(() => {
     if (!filtersData?.categories) return []
@@ -55,7 +72,7 @@ export default function SidebarFilters({
     )
   }, [filtersData, langSearch])
 
-  const hasActiveFilter = Boolean(selectedCategory || selectedCountry || selectedLanguage || selectedHasStreams)
+  const hasActiveFilter = Boolean(selectedCategory || selectedCountry || selectedLanguage || selectedSource || selectedHasStreams)
 
   if (isLoading) {
     return (
@@ -90,7 +107,7 @@ export default function SidebarFilters({
           title={selectedHasStreams === 'true' ? 'Filter active: Showing channels with streams. Click to disable.' : 'Filter to show only channels with streams.'}
         >
           <span className={`status-indicator ${selectedHasStreams === 'true' ? 'status-indicator--live' : 'status-indicator--offline'}`} />
-          <span className="sidebar-stream-toggle-label">Has Streams</span>
+          <span className="sidebar-stream-toggle-label">Has Active Streams</span>
           {filtersData?.streams?.withStreams !== undefined && (
             <span className="filter-option-count">
               {filtersData.streams.withStreams.toLocaleString()}
@@ -98,6 +115,43 @@ export default function SidebarFilters({
           )}
         </button>
       </div>
+
+      {/* SOURCES */}
+      {sources.length > 0 && (
+        <div className="filter-section">
+          <div className="filter-section-title" onClick={() => toggleSection('sources')}>
+            <span>Catalogs & Sources</span>
+            <span>{openSections.sources ? '▾' : '▸'}</span>
+          </div>
+
+          {openSections.sources && (
+            <div className="filter-options-list">
+              <div
+                className={`filter-option-item ${!selectedSource ? 'active' : ''}`}
+                onClick={() => onSelectSource?.('')}
+              >
+                <span>All Enabled Sources</span>
+              </div>
+              {sources.map((src) => {
+                const icon = src.value === 'world-ip-tv' ? '🌍 ' : src.value === 'iptv-org' ? '🌐 ' : '📁 '
+                return (
+                  <div
+                    key={src.value}
+                    className={`filter-option-item ${selectedSource === src.value ? 'active' : ''}`}
+                    onClick={() => onSelectSource?.(selectedSource === src.value ? '' : src.value)}
+                    style={!src.enabled ? { opacity: 0.5 } : {}}
+                  >
+                    <span className="truncate" title={`${src.label}${!src.enabled ? ' (Disabled)' : ''}`}>
+                      {icon}{src.label} {!src.enabled && <span className="text-xs text-muted">(off)</span>}
+                    </span>
+                    <span className="filter-option-count">{(src.count || 0).toLocaleString()}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CATEGORIES */}
       <div className="filter-section">
