@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: iptv-backend
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    volumes:
+      - iptv-data:/app/data
+    environment:
+      - PORT=3001
+      - SYNC_INTERVAL_HOURS=24
+      - DATA_DIR=/app/data
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/api/ping']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: iptv-frontend
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  iptv-data:
+    driver: local
