@@ -445,17 +445,6 @@ async function syncM3uSource(sourceId, m3uUrlOrContent, sourceName, isRawContent
 
     const result = runTransaction();
 
-    // Clean up orphan channels not tied to any streams or favorites
-    try {
-      db.exec(`
-        DELETE FROM channels
-        WHERE id NOT IN (SELECT DISTINCT channel_id FROM streams)
-          AND id NOT IN (SELECT channel_id FROM favorites)
-      `);
-      const validGenreIds = Object.values(GENRE_MAP).map(g => `'${g}'`).join(',');
-      db.exec(`DELETE FROM categories WHERE id NOT IN (${validGenreIds})`);
-    } catch (_e) {}
-
     updateSyncLogDone.run({
       id:              logId,
       finished_at:     Date.now(),
