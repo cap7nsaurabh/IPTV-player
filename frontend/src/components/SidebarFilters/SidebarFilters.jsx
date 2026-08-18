@@ -87,12 +87,10 @@ export default function SidebarFilters({
           type="button"
           className={`stream-quick-filter-btn sidebar-stream-toggle ${selectedHasStreams === 'true' ? 'active' : ''}`}
           onClick={() => onSelectHasStreams?.(selectedHasStreams === 'true' ? '' : 'true')}
-          title={selectedHasStreams === 'true' ? 'Showing channels with streams only. Click to show all.' : 'Filter to show only channels with streams.'}
+          title={selectedHasStreams === 'true' ? 'Filter active: Showing channels with streams. Click to disable.' : 'Filter to show only channels with streams.'}
         >
           <span className={`status-indicator ${selectedHasStreams === 'true' ? 'status-indicator--live' : 'status-indicator--offline'}`} />
-          <span className="sidebar-stream-toggle-label">
-            {selectedHasStreams === 'true' ? 'Streams Only' : 'Has Streams'}
-          </span>
+          <span className="sidebar-stream-toggle-label">Has Streams</span>
           {filtersData?.streams?.withStreams !== undefined && (
             <span className="filter-option-count">
               {filtersData.streams.withStreams.toLocaleString()}

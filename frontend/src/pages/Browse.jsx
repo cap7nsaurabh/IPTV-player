@@ -87,10 +87,10 @@ export default function Browse() {
                 type="button"
                 className={`stream-quick-filter-btn ${hasStreams === 'true' ? 'active' : ''}`}
                 onClick={() => updateParam('hasStreams', hasStreams === 'true' ? '' : 'true')}
-                title={hasStreams === 'true' ? 'Showing channels with streams only. Click to show all.' : 'Filter to show only channels with streams.'}
+                title={hasStreams === 'true' ? 'Filter active: Showing channels with streams. Click to disable.' : 'Filter to show only channels with streams.'}
               >
                 <span className={`status-indicator ${hasStreams === 'true' ? 'status-indicator--live' : 'status-indicator--offline'}`} />
-                <span>{hasStreams === 'true' ? 'Streams Only' : 'Has Streams'}</span>
+                <span>Has Streams</span>
               </button>
 
               <SearchBar
@@ -115,9 +115,9 @@ export default function Browse() {
                 </span>
               )}
 
-              {hasStreams && (
+              {hasStreams === 'true' && (
                 <span className="filter-pill">
-                  Streams: {hasStreams === 'true' ? 'With Streams Only' : 'No Streams'}
+                  Has Streams
                   <span className="filter-pill-remove" onClick={() => updateParam('hasStreams', '')}>
                     ✕
                   </span>
