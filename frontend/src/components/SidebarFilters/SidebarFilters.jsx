@@ -5,9 +5,11 @@ export default function SidebarFilters({
   selectedCategory = '',
   selectedCountry = '',
   selectedLanguage = '',
+  selectedHasStreams = '',
   onSelectCategory,
   onSelectCountry,
   onSelectLanguage,
+  onSelectHasStreams,
   onClearAll,
 }) {
   const { data: filtersData, isLoading } = useFilters()
@@ -53,7 +55,7 @@ export default function SidebarFilters({
     )
   }, [filtersData, langSearch])
 
-  const hasActiveFilter = Boolean(selectedCategory || selectedCountry || selectedLanguage)
+  const hasActiveFilter = Boolean(selectedCategory || selectedCountry || selectedLanguage || selectedHasStreams)
 
   if (isLoading) {
     return (
@@ -61,6 +63,7 @@ export default function SidebarFilters({
         <div className="sidebar-header">
           <h3>Filters</h3>
         </div>
+        <div className="skeleton" style={{ height: '40px', marginBottom: '16px' }} />
         <div className="skeleton" style={{ height: '140px', marginBottom: '16px' }} />
         <div className="skeleton" style={{ height: '140px' }} />
       </div>
@@ -76,6 +79,24 @@ export default function SidebarFilters({
             Clear All
           </button>
         )}
+      </div>
+
+      {/* STREAM STATUS QUICK TOGGLE */}
+      <div className="sidebar-toggle-wrap">
+        <button
+          type="button"
+          className={`stream-quick-filter-btn sidebar-stream-toggle ${selectedHasStreams === 'true' ? 'active' : ''}`}
+          onClick={() => onSelectHasStreams?.(selectedHasStreams === 'true' ? '' : 'true')}
+          title={selectedHasStreams === 'true' ? 'Filter active: Showing channels with streams. Click to disable.' : 'Filter to show only channels with streams.'}
+        >
+          <span className={`status-indicator ${selectedHasStreams === 'true' ? 'status-indicator--live' : 'status-indicator--offline'}`} />
+          <span className="sidebar-stream-toggle-label">Has Streams</span>
+          {filtersData?.streams?.withStreams !== undefined && (
+            <span className="filter-option-count">
+              {filtersData.streams.withStreams.toLocaleString()}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* CATEGORIES */}

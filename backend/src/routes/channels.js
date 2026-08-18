@@ -12,11 +12,13 @@ function parseChannel(ch) {
   if (!ch) return null;
   return {
     ...ch,
-    alt_names:  safeParseJSON(ch.alt_names,  []),
-    categories: safeParseJSON(ch.categories, []),
-    languages:  safeParseJSON(ch.languages,  []),
-    is_nsfw:    Boolean(ch.is_nsfw),
-    isFavorite: Boolean(ch.isFavorite),
+    alt_names:   safeParseJSON(ch.alt_names,  []),
+    categories:  safeParseJSON(ch.categories, []),
+    languages:   safeParseJSON(ch.languages,  []),
+    is_nsfw:     Boolean(ch.is_nsfw),
+    isFavorite:  Boolean(ch.isFavorite),
+    streamCount: ch.streamCount != null ? Number(ch.streamCount) : undefined,
+    hasStreams:  ch.streamCount != null ? Number(ch.streamCount) > 0 : undefined,
   };
 }
 
@@ -26,7 +28,7 @@ function safeParseJSON(value, fallback) {
 
 // ---------------------------------------------------------------------------
 // GET /api/channels
-// Query params: search, country, category, language, page, limit, favoritesOnly
+// Query params: search, country, category, language, page, limit, favoritesOnly, hasStreams
 // ---------------------------------------------------------------------------
 router.get('/', (req, res) => {
   const {
@@ -35,6 +37,7 @@ router.get('/', (req, res) => {
     category,
     language,
     favoritesOnly,
+    hasStreams,
     page  = '1',
     limit = '48',
   } = req.query;
@@ -66,6 +69,12 @@ router.get('/', (req, res) => {
     params.push(`%"${language}"%`);
   }
 
+  if (hasStreams === 'true' || hasStreams === '1') {
+    conditions.push("EXISTS (SELECT 1 FROM streams s WHERE s.channel_id = c.id)");
+  } else if (hasStreams === 'false' || hasStreams === '0') {
+    conditions.push("NOT EXISTS (SELECT 1 FROM streams s WHERE s.channel_id = c.id)");
+  }
+
   const joinFav = favoritesOnly === 'true'
     ? 'INNER JOIN favorites f ON f.channel_id = c.id'
     : 'LEFT JOIN favorites f ON f.channel_id = c.id';
@@ -80,7 +89,9 @@ router.get('/', (req, res) => {
   `;
 
   const dataSql = `
-    SELECT c.*, CASE WHEN f.channel_id IS NOT NULL THEN 1 ELSE 0 END AS isFavorite
+    SELECT c.*,
+           CASE WHEN f.channel_id IS NOT NULL THEN 1 ELSE 0 END AS isFavorite,
+           (SELECT COUNT(*) FROM streams s WHERE s.channel_id = c.id) AS streamCount
     FROM channels c
     ${joinFav}
     ${where}
@@ -134,6 +145,15 @@ router.get('/filters', (_req, res) => {
     }
   }
 
+  const streamCounts = db.prepare(`
+    SELECT
+      COUNT(CASE WHEN EXISTS(SELECT 1 FROM streams s WHERE s.channel_id = c.id) THEN 1 END) as withStreams,
+      COUNT(CASE WHEN NOT EXISTS(SELECT 1 FROM streams s WHERE s.channel_id = c.id) THEN 1 END) as withoutStreams,
+      COUNT(*) as total
+    FROM channels c
+    WHERE c.closed IS NULL
+  `).get() || { withStreams: 0, withoutStreams: 0, total: 0 };
+
   const toSortedCategories = (map) =>
     [...map.entries()]
       .sort((a, b) => b[1] - a[1])
@@ -161,6 +181,11 @@ router.get('/filters', (_req, res) => {
       count: r.count
     })),
     languages:  toSortedLanguages(langCount),
+    streams: {
+      total: streamCounts.total || 0,
+      withStreams: streamCounts.withStreams || 0,
+      withoutStreams: streamCounts.withoutStreams || 0,
+    },
   });
 });
 
