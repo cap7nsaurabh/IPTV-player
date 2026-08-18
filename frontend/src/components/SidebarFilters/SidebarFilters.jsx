@@ -19,7 +19,6 @@ export default function SidebarFilters({
   const [langSearch, setLangSearch] = useState('')
 
   const [openSections, setOpenSections] = useState({
-    streams: true,
     categories: true,
     countries: true,
     languages: false,
@@ -64,7 +63,7 @@ export default function SidebarFilters({
         <div className="sidebar-header">
           <h3>Filters</h3>
         </div>
-        <div className="skeleton" style={{ height: '100px', marginBottom: '16px' }} />
+        <div className="skeleton" style={{ height: '40px', marginBottom: '16px' }} />
         <div className="skeleton" style={{ height: '140px', marginBottom: '16px' }} />
         <div className="skeleton" style={{ height: '140px' }} />
       </div>
@@ -82,56 +81,24 @@ export default function SidebarFilters({
         )}
       </div>
 
-      {/* STREAM STATUS */}
-      <div className="filter-section">
-        <div className="filter-section-title" onClick={() => toggleSection('streams')}>
-          <span>Stream Availability</span>
-          <span>{openSections.streams ? '▾' : '▸'}</span>
-        </div>
-
-        {openSections.streams && (
-          <div className="filter-options-list">
-            <div
-              className={`filter-option-item ${!selectedHasStreams ? 'active' : ''}`}
-              onClick={() => onSelectHasStreams?.('')}
-            >
-              <span>All Channels</span>
-              {filtersData?.streams?.total !== undefined && (
-                <span className="filter-option-count">
-                  {filtersData.streams.total.toLocaleString()}
-                </span>
-              )}
-            </div>
-            <div
-              className={`filter-option-item ${selectedHasStreams === 'true' ? 'active' : ''}`}
-              onClick={() => onSelectHasStreams?.(selectedHasStreams === 'true' ? '' : 'true')}
-            >
-              <span className="flex items-center gap-1.5">
-                <span className="status-indicator status-indicator--live" />
-                With Streams Only
-              </span>
-              {filtersData?.streams?.withStreams !== undefined && (
-                <span className="filter-option-count">
-                  {filtersData.streams.withStreams.toLocaleString()}
-                </span>
-              )}
-            </div>
-            <div
-              className={`filter-option-item ${selectedHasStreams === 'false' ? 'active' : ''}`}
-              onClick={() => onSelectHasStreams?.(selectedHasStreams === 'false' ? '' : 'false')}
-            >
-              <span className="flex items-center gap-1.5">
-                <span className="status-indicator status-indicator--offline" />
-                No Streams
-              </span>
-              {filtersData?.streams?.withoutStreams !== undefined && (
-                <span className="filter-option-count">
-                  {filtersData.streams.withoutStreams.toLocaleString()}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+      {/* STREAM STATUS QUICK TOGGLE */}
+      <div className="sidebar-toggle-wrap">
+        <button
+          type="button"
+          className={`stream-quick-filter-btn sidebar-stream-toggle ${selectedHasStreams === 'true' ? 'active' : ''}`}
+          onClick={() => onSelectHasStreams?.(selectedHasStreams === 'true' ? '' : 'true')}
+          title={selectedHasStreams === 'true' ? 'Showing channels with streams only. Click to show all.' : 'Filter to show only channels with streams.'}
+        >
+          <span className={`status-indicator ${selectedHasStreams === 'true' ? 'status-indicator--live' : 'status-indicator--offline'}`} />
+          <span className="sidebar-stream-toggle-label">
+            {selectedHasStreams === 'true' ? 'Streams Only' : 'Has Streams'}
+          </span>
+          {filtersData?.streams?.withStreams !== undefined && (
+            <span className="filter-option-count">
+              {filtersData.streams.withStreams.toLocaleString()}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* CATEGORIES */}
