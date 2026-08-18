@@ -66,6 +66,7 @@ export default function Browse() {
             selectedLanguage={language}
             selectedSource={source}
             selectedHasStreams={hasStreams}
+            search={search}
             onSelectCategory={(val) => updateParam('category', val)}
             onSelectCountry={(val) => updateParam('country', val)}
             onSelectLanguage={(val) => updateParam('language', val)}

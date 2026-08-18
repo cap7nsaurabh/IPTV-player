@@ -25,7 +25,16 @@ export const api = {
       return apiFetch('/channels?' + cleanParams.toString())
     },
     get: (id) => apiFetch(`/channels/${encodeURIComponent(id)}`),
-    filters: () => apiFetch('/channels/filters'),
+    filters: (params = {}) => {
+      const cleanParams = new URLSearchParams()
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          cleanParams.set(k, String(v))
+        }
+      })
+      const qs = cleanParams.toString()
+      return apiFetch('/channels/filters' + (qs ? `?${qs}` : ''))
+    },
   },
   favorites: {
     list: () => apiFetch('/favorites'),

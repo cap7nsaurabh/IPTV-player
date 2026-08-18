@@ -125,49 +125,141 @@ router.get('/', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/channels/filters
+// Helper: build WHERE clause for faceted filter counts
 // ---------------------------------------------------------------------------
-router.get('/filters', (_req, res) => {
+function buildFacetConditions(query = {}, excludeField = null) {
+  const {
+    search,
+    country,
+    category,
+    language,
+    source,
+    hasStreams,
+    favoritesOnly,
+  } = query;
+
+  const conditions = ['c.closed IS NULL'];
+  const params = [];
+
+  if (search && excludeField !== 'search') {
+    conditions.push("(c.name LIKE ? OR c.alt_names LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (country && excludeField !== 'country') {
+    conditions.push('c.country = ?');
+    params.push(country);
+  }
+
+  if (category && excludeField !== 'category') {
+    conditions.push("c.categories LIKE ?");
+    params.push(`%"${category}"%`);
+  }
+
+  if (language && excludeField !== 'language') {
+    conditions.push("c.languages LIKE ?");
+    params.push(`%"${language}"%`);
+  }
+
+  if (source && excludeField !== 'source') {
+    conditions.push("EXISTS (SELECT 1 FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND s.source = ? AND src.enabled = 1)");
+    params.push(source);
+  }
+
+  if (hasStreams === 'true' || hasStreams === '1') {
+    if (excludeField !== 'hasStreams') {
+      conditions.push("EXISTS (SELECT 1 FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1)");
+    }
+  } else if (hasStreams === 'false' || hasStreams === '0') {
+    if (excludeField !== 'hasStreams') {
+      conditions.push("NOT EXISTS (SELECT 1 FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1)");
+    }
+  }
+
+  const joinFav = favoritesOnly === 'true' && excludeField !== 'favorites'
+    ? 'INNER JOIN favorites f ON f.channel_id = c.id'
+    : '';
+
+  return {
+    where: `WHERE ${conditions.join(' AND ')}`,
+    joinFav,
+    params,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/channels/filters
+// Dynamically computes faceted facet counts matching the active query
+// ---------------------------------------------------------------------------
+router.get('/filters', (req, res) => {
+  const query = req.query || {};
+
+  // 1. Countries facet
+  const countryCond = buildFacetConditions(query, 'country');
   const countryRows = db.prepare(`
     SELECT c.country, count(*) as count, co.name, co.flag
     FROM channels c
     LEFT JOIN countries co ON co.code = c.country
-    WHERE c.closed IS NULL AND c.country IS NOT NULL AND c.country != ''
+    ${countryCond.joinFav}
+    ${countryCond.where} AND c.country IS NOT NULL AND c.country != ''
     GROUP BY c.country
     ORDER BY count DESC
-  `).all();
+  `).all(...countryCond.params);
 
+  // 2. Sources facet
+  const sourceCond = buildFacetConditions(query, 'source');
   const sourceRows = db.prepare(`
     SELECT s.id as value, s.name as label, s.enabled,
-           (SELECT COUNT(DISTINCT channel_id) FROM streams WHERE source = s.id) as count,
-           (SELECT COUNT(*) FROM streams WHERE source = s.id) as streamCount
+           (SELECT COUNT(DISTINCT s2.channel_id)
+            FROM streams s2
+            JOIN channels c ON c.id = s2.channel_id
+            ${sourceCond.joinFav}
+            ${sourceCond.where} AND s2.source = s.id
+           ) as count
     FROM sources s
     ORDER BY count DESC
-  `).all();
+  `).all(...sourceCond.params);
 
+  // 3. Categories facet
   const categoryRows = db.prepare(`SELECT id, name FROM categories`).all();
   const categoryMap = new Map(categoryRows.map(c => [c.id, c.name]));
 
-  // Tally categories and languages from JSON arrays
-  const catCount  = new Map();
-  const langCount = new Map();
+  const catCond = buildFacetConditions(query, 'category');
+  const catRows = db.prepare(`
+    SELECT c.categories FROM channels c
+    ${catCond.joinFav}
+    ${catCond.where}
+  `).all(...catCond.params);
 
-  const allRows = db.prepare(`
-    SELECT categories, languages FROM channels WHERE closed IS NULL
-  `).all();
-
-  for (const row of allRows) {
+  const catCount = new Map();
+  for (const row of catRows) {
     for (const cat of safeParseJSON(row.categories, [])) {
       if (cat && GENRE_MAP[cat.toLowerCase()]) {
         const normalized = GENRE_MAP[cat.toLowerCase()];
         catCount.set(normalized, (catCount.get(normalized) || 0) + 1);
       }
     }
+  }
+
+  // 4. Languages facet
+  const langCond = buildFacetConditions(query, 'language');
+  const langRows = db.prepare(`
+    SELECT c.languages FROM channels c
+    ${langCond.joinFav}
+    ${langCond.where}
+  `).all(...langCond.params);
+
+  const langCount = new Map();
+  for (const row of langRows) {
     for (const lang of safeParseJSON(row.languages, [])) {
-      langCount.set(lang, (langCount.get(lang) || 0) + 1);
+      if (lang) {
+        langCount.set(lang, (langCount.get(lang) || 0) + 1);
+      }
     }
   }
 
+  // 5. Streams count facet
+  const streamCond = buildFacetConditions(query, 'hasStreams');
   const streamCounts = db.prepare(`
     SELECT
       COUNT(CASE WHEN EXISTS(
@@ -182,8 +274,9 @@ router.get('/filters', (_req, res) => {
       ) THEN 1 END) as withoutStreams,
       COUNT(*) as total
     FROM channels c
-    WHERE c.closed IS NULL
-  `).get() || { withStreams: 0, withoutStreams: 0, total: 0 };
+    ${streamCond.joinFav}
+    ${streamCond.where}
+  `).get(...streamCond.params) || { withStreams: 0, withoutStreams: 0, total: 0 };
 
   const toSortedCategories = (map) =>
     [...map.entries()]

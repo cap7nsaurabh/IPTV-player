@@ -16,10 +16,10 @@ export function useChannel(id) {
   })
 }
 
-export function useFilters() {
+export function useFilters(params = {}) {
   return useQuery({
-    queryKey: ['filters'],
-    queryFn: () => api.channels.filters(),
+    queryKey: ['filters', params],
+    queryFn: () => api.channels.filters(params),
     staleTime: 0,
   })
 }

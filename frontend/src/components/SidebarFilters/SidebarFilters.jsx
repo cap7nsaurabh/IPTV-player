@@ -7,6 +7,7 @@ export default function SidebarFilters({
   selectedLanguage = '',
   selectedSource = '',
   selectedHasStreams = '',
+  search = '',
   onSelectCategory,
   onSelectCountry,
   onSelectLanguage,
@@ -14,7 +15,16 @@ export default function SidebarFilters({
   onSelectHasStreams,
   onClearAll,
 }) {
-  const { data: filtersData, isLoading } = useFilters()
+  const filterParams = useMemo(() => ({
+    search: search || undefined,
+    category: selectedCategory || undefined,
+    country: selectedCountry || undefined,
+    language: selectedLanguage || undefined,
+    source: selectedSource || undefined,
+    hasStreams: selectedHasStreams || undefined,
+  }), [search, selectedCategory, selectedCountry, selectedLanguage, selectedSource, selectedHasStreams])
+
+  const { data: filtersData, isLoading } = useFilters(filterParams)
 
   const [catSearch, setCatSearch] = useState('')
   const [countrySearch, setCountrySearch] = useState('')
