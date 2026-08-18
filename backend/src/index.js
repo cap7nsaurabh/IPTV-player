@@ -5,6 +5,18 @@ const cors = require('cors');
 const { initSchema } = require('./db/schema');
 const { startScheduler } = require('./scheduler');
 
+// Process safety error handlers
+process.on('uncaughtException', (err) => {
+  if (err.code === 'ERR_STREAM_WRITE_AFTER_END' || err.code === 'ECONNRESET' || err.code === 'EPIPE') {
+    return;
+  }
+  console.error('[Uncaught Exception]', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Unhandled Rejection]', reason);
+});
+
 // Initialize database schema
 initSchema();
 
