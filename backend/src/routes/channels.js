@@ -11,11 +11,15 @@ const router = express.Router();
 // ---------------------------------------------------------------------------
 function parseChannel(ch) {
   if (!ch) return null;
+  const rawSources = safeParseJSON(ch.sources, []);
+  const sources = (Array.isArray(rawSources) ? rawSources : []).filter(Boolean);
+
   return {
     ...ch,
     alt_names:   safeParseJSON(ch.alt_names,  []),
     categories:  safeParseJSON(ch.categories, []),
     languages:   safeParseJSON(ch.languages,  []),
+    sources,
     is_nsfw:     Boolean(ch.is_nsfw),
     isFavorite:  Boolean(ch.isFavorite),
     streamCount: ch.streamCount != null ? Number(ch.streamCount) : undefined,
@@ -98,7 +102,8 @@ router.get('/', (req, res) => {
   const dataSql = `
     SELECT c.*,
            CASE WHEN f.channel_id IS NOT NULL THEN 1 ELSE 0 END AS isFavorite,
-           (SELECT COUNT(*) FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1) AS streamCount
+           (SELECT COUNT(*) FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1) AS streamCount,
+           (SELECT json_group_array(DISTINCT s.source) FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1) AS sources
     FROM channels c
     ${joinFav}
     ${where}
@@ -223,7 +228,9 @@ router.get('/:id', (req, res) => {
   const { id } = req.params;
 
   const channel = db.prepare(`
-    SELECT c.*, CASE WHEN f.channel_id IS NOT NULL THEN 1 ELSE 0 END AS isFavorite
+    SELECT c.*,
+           CASE WHEN f.channel_id IS NOT NULL THEN 1 ELSE 0 END AS isFavorite,
+           (SELECT json_group_array(DISTINCT s.source) FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1) AS sources
     FROM channels c
     LEFT JOIN favorites f ON f.channel_id = c.id
     WHERE c.id = ?

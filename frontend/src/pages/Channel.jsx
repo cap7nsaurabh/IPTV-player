@@ -121,6 +121,15 @@ export default function Channel() {
             <div className="channel-title-meta">
               <h1>{channel.name}</h1>
               <div className="channel-tags">
+                {(channel.sources || []).map((srcId) => {
+                  const label = srcId === 'world-ip-tv' ? 'World IPTV' : srcId === 'iptv-org' ? 'iptv-org' : srcId.replace(/^custom-/, '').replace(/-[a-z0-9]{8}$/, '')
+                  const icon = srcId === 'world-ip-tv' ? '🌍' : srcId === 'iptv-org' ? '🌐' : '📁'
+                  return (
+                    <span key={srcId} className={`badge badge-source ${srcId}`}>
+                      {icon} {label}
+                    </span>
+                  )
+                })}
                 {channel.country && (
                   <span className="badge">
                     🌐 {channel.country}

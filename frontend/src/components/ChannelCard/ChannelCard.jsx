@@ -24,6 +24,15 @@ export default function ChannelCard({ channel }) {
     : channel.logo
 
   const categories = Array.isArray(channel.categories) ? channel.categories : []
+  const sources = Array.isArray(channel.sources) ? channel.sources : []
+
+  const formatSourceBadge = (srcId) => {
+    if (srcId === 'world-ip-tv') return { label: 'World IPTV', icon: '🌍' }
+    if (srcId === 'iptv-org') return { label: 'iptv-org', icon: '🌐' }
+    const clean = srcId.replace(/^custom-/, '').replace(/-[a-z0-9]{8}$/, '')
+    const display = clean.length > 14 ? clean.slice(0, 13) + '…' : clean
+    return { label: display, icon: '📁' }
+  }
 
   return (
     <Link to={`/channel/${encodeURIComponent(channel.id)}`} className="channel-card">
@@ -51,6 +60,19 @@ export default function ChannelCard({ channel }) {
         </div>
 
         <div className="channel-card__meta">
+          {sources.map((srcId) => {
+            const info = formatSourceBadge(srcId)
+            return (
+              <span
+                key={srcId}
+                className={`badge badge-source ${srcId}`}
+                title={`Catalog Source: ${info.label}`}
+              >
+                {info.icon} {info.label}
+              </span>
+            )
+          })}
+
           {channel.country && (
             <span className="badge" title={`Country: ${channel.country}`}>
               🌐 {channel.country}

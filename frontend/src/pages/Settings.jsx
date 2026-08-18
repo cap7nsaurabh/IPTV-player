@@ -27,6 +27,9 @@ export default function Settings() {
   // Syncing source tracking
   const [syncingSourceId, setSyncingSourceId] = useState(null)
 
+  // Delete confirmation state
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+
   // Queries
   const { data: sources, isLoading: sourcesLoading } = useQuery({
     queryKey: ['sources'],
@@ -323,36 +326,55 @@ export default function Settings() {
                       )}
                     </div>
 
-                    <div className="flex gap-2">
-                      {!isBuiltIn && (
+                    {confirmDeleteId === src.id ? (
+                      <div className="flex gap-2 items-center">
                         <button
-                          className="btn btn-ghost btn-sm btn-danger"
-                          title="Delete source and remove its streams"
+                          className="btn btn-danger btn-sm"
+                          style={{ padding: '4px 10px', fontSize: '11px' }}
+                          disabled={deleteSourceMutation.isPending}
                           onClick={() => {
-                            if (window.confirm(`Delete source "${src.name}"? Its associated streams will be removed.`)) {
-                              deleteSourceMutation.mutate(src.id)
-                            }
+                            deleteSourceMutation.mutate(src.id)
+                            setConfirmDeleteId(null)
                           }}
                         >
-                          🗑️
+                          {deleteSourceMutation.isPending ? 'Removing...' : '⚠️ Confirm Remove'}
                         </button>
-                      )}
-
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        disabled={isSyncing || syncAllMutation.isPending || !src.enabled}
-                        onClick={() => syncSingleMutation.mutate(src.id)}
-                      >
-                        {isSyncing ? (
-                          <>
-                            <span className="spinner spinner-sm" />
-                            Syncing...
-                          </>
-                        ) : (
-                          '🔄 Sync'
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ padding: '4px 8px', fontSize: '11px' }}
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        {src.id !== 'iptv-org' && (
+                          <button
+                            className="btn btn-ghost btn-sm btn-danger"
+                            title="Remove source and its streams"
+                            onClick={() => setConfirmDeleteId(src.id)}
+                          >
+                            🗑️ Remove
+                          </button>
                         )}
-                      </button>
-                    </div>
+
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          disabled={isSyncing || syncAllMutation.isPending || !src.enabled}
+                          onClick={() => syncSingleMutation.mutate(src.id)}
+                        >
+                          {isSyncing ? (
+                            <>
+                              <span className="spinner spinner-sm" />
+                              Syncing...
+                            </>
+                          ) : (
+                            '🔄 Sync'
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
@@ -500,6 +522,21 @@ export default function Settings() {
 
             <form onSubmit={handleAddSubmit}>
               <div className="modal-body">
+                <div style={{ marginBottom: '12px' }}>
+                  <div className="text-muted text-xs" style={{ marginBottom: '6px' }}>Quick Preset:</div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '11px', padding: '4px 10px' }}
+                    onClick={() => {
+                      setNewSourceName('World IPTV (Romaxa55)')
+                      setNewSourceUrl('https://romaxa55.github.io/world_ip_tv/output/index.m3u')
+                    }}
+                  >
+                    🌍 World IPTV (Romaxa55 Auto-Verified)
+                  </button>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">Playlist / Source Name</label>
                   <input
