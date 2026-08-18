@@ -23,3 +23,7 @@ Thumbs.db
 .opencode/
 .ai/
 *.swp
+
+# Local Launchers
+*.bat
+*.lnk
