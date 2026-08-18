@@ -20,7 +20,7 @@ export function useFilters() {
   return useQuery({
     queryKey: ['filters'],
     queryFn: () => api.channels.filters(),
-    staleTime: 1000 * 60 * 30,
+    staleTime: 0,
   })
 }
 

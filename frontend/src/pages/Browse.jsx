@@ -12,6 +12,7 @@ export default function Browse() {
   const category = searchParams.get('category') || ''
   const country = searchParams.get('country') || ''
   const language = searchParams.get('language') || ''
+  const source = searchParams.get('source') || ''
   const hasStreams = searchParams.get('hasStreams') || ''
   const page = parseInt(searchParams.get('page') || '1', 10)
 
@@ -21,6 +22,7 @@ export default function Browse() {
     category,
     country,
     language,
+    source,
     hasStreams,
     page,
     limit: 48,
@@ -39,7 +41,7 @@ export default function Browse() {
         next.delete(key)
       }
 
-      // Reset to page 1 ONLY when changing search, category, country, language, or hasStreams
+      // Reset to page 1 ONLY when changing search, category, country, language, source, or hasStreams
       if (key !== 'page') {
         next.delete('page')
       }
@@ -51,7 +53,7 @@ export default function Browse() {
     setSearchParams({})
   }, [setSearchParams])
 
-  const hasActiveFilters = Boolean(search || category || country || language || hasStreams)
+  const hasActiveFilters = Boolean(search || category || country || language || source || hasStreams)
 
   return (
     <div className="container page-wrapper">
@@ -62,10 +64,12 @@ export default function Browse() {
             selectedCategory={category}
             selectedCountry={country}
             selectedLanguage={language}
+            selectedSource={source}
             selectedHasStreams={hasStreams}
             onSelectCategory={(val) => updateParam('category', val)}
             onSelectCountry={(val) => updateParam('country', val)}
             onSelectLanguage={(val) => updateParam('language', val)}
+            onSelectSource={(val) => updateParam('source', val)}
             onSelectHasStreams={(val) => updateParam('hasStreams', val)}
             onClearAll={handleClearAll}
           />
@@ -115,9 +119,18 @@ export default function Browse() {
                 </span>
               )}
 
+              {source && (
+                <span className="filter-pill">
+                  Source: {source}
+                  <span className="filter-pill-remove" onClick={() => updateParam('source', '')}>
+                    ✕
+                  </span>
+                </span>
+              )}
+
               {hasStreams === 'true' && (
                 <span className="filter-pill">
-                  Has Streams
+                  Has Active Streams
                   <span className="filter-pill-remove" onClick={() => updateParam('hasStreams', '')}>
                     ✕
                   </span>

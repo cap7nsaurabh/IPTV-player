@@ -76,9 +76,9 @@ router.get('/', (req, res) => {
   }
 
   if (hasStreams === 'true' || hasStreams === '1') {
-    conditions.push("EXISTS (SELECT 1 FROM streams s WHERE s.channel_id = c.id)");
+    conditions.push("EXISTS (SELECT 1 FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1)");
   } else if (hasStreams === 'false' || hasStreams === '0') {
-    conditions.push("NOT EXISTS (SELECT 1 FROM streams s WHERE s.channel_id = c.id)");
+    conditions.push("NOT EXISTS (SELECT 1 FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1)");
   }
 
   const joinFav = favoritesOnly === 'true'
@@ -97,7 +97,7 @@ router.get('/', (req, res) => {
   const dataSql = `
     SELECT c.*,
            CASE WHEN f.channel_id IS NOT NULL THEN 1 ELSE 0 END AS isFavorite,
-           (SELECT COUNT(*) FROM streams s WHERE s.channel_id = c.id) AS streamCount
+           (SELECT COUNT(*) FROM streams s JOIN sources src ON src.id = s.source WHERE s.channel_id = c.id AND src.enabled = 1) AS streamCount
     FROM channels c
     ${joinFav}
     ${where}
@@ -132,8 +132,9 @@ router.get('/filters', (_req, res) => {
   `).all();
 
   const sourceRows = db.prepare(`
-    SELECT s.id as value, s.name as label,
-           (SELECT COUNT(DISTINCT channel_id) FROM streams WHERE source = s.id) as count
+    SELECT s.id as value, s.name as label, s.enabled,
+           (SELECT COUNT(DISTINCT channel_id) FROM streams WHERE source = s.id) as count,
+           (SELECT COUNT(*) FROM streams WHERE source = s.id) as streamCount
     FROM sources s
     ORDER BY count DESC
   `).all();
@@ -160,8 +161,16 @@ router.get('/filters', (_req, res) => {
 
   const streamCounts = db.prepare(`
     SELECT
-      COUNT(CASE WHEN EXISTS(SELECT 1 FROM streams s WHERE s.channel_id = c.id) THEN 1 END) as withStreams,
-      COUNT(CASE WHEN NOT EXISTS(SELECT 1 FROM streams s WHERE s.channel_id = c.id) THEN 1 END) as withoutStreams,
+      COUNT(CASE WHEN EXISTS(
+        SELECT 1 FROM streams s
+        JOIN sources src ON src.id = s.source
+        WHERE s.channel_id = c.id AND src.enabled = 1
+      ) THEN 1 END) as withStreams,
+      COUNT(CASE WHEN NOT EXISTS(
+        SELECT 1 FROM streams s
+        JOIN sources src ON src.id = s.source
+        WHERE s.channel_id = c.id AND src.enabled = 1
+      ) THEN 1 END) as withoutStreams,
       COUNT(*) as total
     FROM channels c
     WHERE c.closed IS NULL
@@ -193,7 +202,7 @@ router.get('/filters', (_req, res) => {
       flag: r.flag || '🌐',
       count: r.count
     })),
-    sources:    sourceRows,
+    sources:    sourceRows.map(s => ({ ...s, enabled: Boolean(s.enabled) })),
     languages:  toSortedLanguages(langCount),
     streams: {
       total: streamCounts.total || 0,
@@ -221,7 +230,11 @@ router.get('/:id', (req, res) => {
   }
 
   const streams = db.prepare(`
-    SELECT * FROM streams WHERE channel_id = ? ORDER BY status ASC
+    SELECT s.*, src.name as source_name, src.enabled as source_enabled
+    FROM streams s
+    JOIN sources src ON src.id = s.source
+    WHERE s.channel_id = ? AND src.enabled = 1
+    ORDER BY s.status ASC, s.id ASC
   `).all(id);
 
   res.json({ ...parseChannel(channel), streams });

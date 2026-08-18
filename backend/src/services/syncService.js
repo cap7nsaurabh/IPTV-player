@@ -565,7 +565,13 @@ function getSyncHistory(limit = 10) {
 function getDbStats() {
   const channelCount = db.prepare('SELECT COUNT(*) as count FROM channels WHERE closed IS NULL').get()?.count || 0;
   const totalChannels = db.prepare('SELECT COUNT(*) as count FROM channels').get()?.count || 0;
-  const streamCount = db.prepare('SELECT COUNT(*) as count FROM streams').get()?.count || 0;
+  const streamCount = db.prepare(`
+    SELECT COUNT(*) as count
+    FROM streams s
+    JOIN sources src ON src.id = s.source
+    WHERE src.enabled = 1
+  `).get()?.count || 0;
+  const totalStreams = db.prepare('SELECT COUNT(*) as count FROM streams').get()?.count || 0;
   const cachedLogos = db.prepare('SELECT COUNT(*) as count FROM channels WHERE logo_cached = 1').get()?.count || 0;
   const favoritesCount = db.prepare('SELECT COUNT(*) as count FROM favorites').get()?.count || 0;
   const epgProgramsCount = db.prepare('SELECT COUNT(*) as count FROM epg_programs').get()?.count || 0;
@@ -577,6 +583,7 @@ function getDbStats() {
     activeChannels: channelCount,
     totalChannels,
     streams: streamCount,
+    totalStreams,
     cachedLogos,
     favorites: favoritesCount,
     epgPrograms: epgProgramsCount,
